@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}SETTINGS — NAMMALAEW / น้ำมาแล้ว!{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>SETTINGS / การตั้งค่า</h2>
+</div>
+
+{% if flash %}
+  <div class="alert alert-success">{{ flash }}</div>
+{% endif %}
+{% if flash_error %}
+  <div class="alert alert-error">{{ flash_error }}</div>
+{% endif %}
+
+{% macro setup_chip(step) -%}
+  {% if setup and setup.steps[step] %}<span class="setup-chip {{ 'ok' if setup.steps[step].ok else 'todo' }}">{{ setup.steps[step].text }}</span>{% endif %}
+{%- endmacro %}
+
+<details class="poster-block setup-block" id="setup-for-your-site">
+  <summary>
+    <h3>◆ SET UP FOR YOUR SITE</h3>
+    {% if setup %}<span class="setup-chip {{ 'ok' if setup.done == setup.total else 'todo' }}">{{ setup.done }} OF {{ setup.total }} CHECKED</span>{% endif %}
+    <span class="setup-toggle" aria-hidden="true"></span>
+  </summary>
+  <p class="setup-intro">Every site is different. The monitor only knows yours through these four things, so do them in order and check back after moving a camera.</p>
+  <ol class="setup-steps">
+    <li class="setup-step">
+      <h4>NAME EACH CAMERA {{ setup_chip('cameras') }}</h4>
+      <p>Set <code>CAM_STREAMS</code> in <code>.env</code> as <code>label=rtsp-url</code>, one per camera, comma-separated. One camera or many both work. The labels show up in alerts and the line editor. After editing, run <code>docker compose up -d</code>.</p>
+    </li>
+    <li class="setup-step">
+      <h4>DRAW THE LINES {{ setup_chip('lines') }}</h4>
+      <p>In <a href="/lines">LINE EDITOR</a>, draw a <b>red</b> line where water becomes dangerous and an <b>amber</b> line where it becomes a warning. The lens with the red line decides CRITICAL: water must reach that line. Draw it where water actually arrives from at your site.</p>
+    </li>
+    <li class="setup-step">
+      <h4>DESCRIBE YOUR SITE {{ setup_chip('description') }}</h4>
+      <p>Fill in <b>Reference description</b> below: what each lens shows, which lens decides CRITICAL, and what 0 / 50 / 100 look like at your site. Claude reads it on every check.</p>
+    </li>
+    <li class="setup-step">
+      <h4>CHECK THE REST</h4>
+      <p>Warning/critical levels (only used when no red line is drawn), your coordinates for the rainfall chart, and the check interval and model, which set how much Claude usage you spend.</p>
+    </li>
+  </ol>
+</details>
+
+<form method="POST" action="/settings" id="settings-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+
+  {% set groups = [
+    ('Telegram', ['telegram_enabled','telegram_bot_token','telegram_chat_id']),
+    ('Alert Policy', ['alert_on_warning','alert_on_recovery','alert_on_failure','failure_threshold','critical_repeat_minutes','critical_confirm','critical_confirm_recheck_seconds','heartbeat_hour']),
+    ('Monitor', ['capture_interval_minutes','level_warning','level_critical','claude_model','reference_description']),
+    ('Location', ['latitude','longitude']),
+    ('Siren (MQTT)', ['siren_enabled','mqtt_host','mqtt_port','mqtt_username','mqtt_password','siren_topic','siren_seconds','siren_on_warning']),
+  ] %}
+
+  {% for group_name, keys in groups %}
+  <div class="poster-block settings-group">
+    <h3>◆ {{ group_name | upper }}</h3>
+    {% for key in keys %}
+      {% set spec = specs | selectattr('key', 'equalto', key) | first %}
+      {% if spec %}
+        {% set val = current[spec.key] %}
+        {% set src = sources[spec.key] %}
+        <div class="settings-row">
+          <div class="settings-label-area">
+            <label for="s_{{ spec.key }}">{{ spec.label }}</label>
+            <span class="settings-source src-{{ src }}">[{{ src | upper }}]</span>
+            {% if spec.env %}
+              <span class="settings-env text-muted">env: {{ spec.env }}</span>
+            {% endif %}
+          </div>
+          <div class="settings-input-area">
+            {% if spec.kind == 'bool' %}
+              <label class="toggle">
+                <input type="checkbox" id="s_{{ spec.key }}" name="{{ spec.key }}" value="1" {% if val in ('1','true','yes','on') %}checked{% endif %} />
+                <span class="toggle-slider"></span>
+              </label>
+            {% elif spec.kind == 'secret' %}
+              <input
+                type="password"
+                id="s_{{ spec.key }}"
+                name="{{ spec.key }}"
+                class="form-control"
+                placeholder="{% if val %}••••••••{{ val[-4:] }}{% else %}NOT SET{% endif %}"
+                autocomplete="off"
+              />
+              <label class="clear-check">
+                <input type="checkbox" name="{{ spec.key }}_clear" value="1" />
+                CLEAR (REMOVE SAVED VALUE)
+              </label>
+              <div class="settings-hint">LEAVE BLANK TO KEEP THE EXISTING VALUE.</div>
+            {% else %}
+              {% if spec.hint %}<div class="field-with-info">{% endif %}
+              {% if spec.kind == 'text' %}
+              <textarea
+                id="s_{{ spec.key }}"
+                name="{{ spec.key }}"
+                class="form-control"
+                rows="4"
+              >{{ val }}</textarea>
+              {% elif spec.kind in ('int', 'float') %}
+              <input
+                type="number"
+                id="s_{{ spec.key }}"
+                name="{{ spec.key }}"
+                class="form-control"
+                value="{{ val }}"
+                step="{% if spec.kind == 'float' %}0.1{% else %}1{% endif %}"
+              />
+              {% else %}
+              <input
+                type="text"
+                id="s_{{ spec.key }}"
+                name="{{ spec.key }}"
+                class="form-control"
+                value="{{ val }}"
+              />
+              {% endif %}
+              {% if spec.hint %}
+                <button type="button" class="info-btn" aria-expanded="false"
+                        aria-controls="hint-{{ spec.key }}" aria-label="About {{ spec.label }}">i</button>
+              </div>
+              <div class="hint-wrap" id="hint-{{ spec.key }}" hidden>
+                <div class="settings-hint">{{ spec.hint }}</div>
+                {% if spec.example %}<div class="setup-example">Example: <code>{{ spec.example }}</code></div>{% endif %}
+              </div>
+              {% endif %}
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endfor %}
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">SAVE SETTINGS</button>
+    <span class="save-stamp" id="settings-saved" style="display:none;">SAVED ✱</span>
+  </div>
+</form>
+
+<!-- Test Telegram -->
+<div class="poster-block">
+  <h3>◆ TEST TELEGRAM</h3>
+  <p style="font-size:var(--text-sm);margin-bottom:var(--space-md);">SENDS A TEST MESSAGE USING THE CURRENTLY SAVED SETTINGS.</p>
+  <form method="POST" action="/settings/test-telegram">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <button type="submit" class="btn btn-secondary">SEND TEST MESSAGE</button>
+  </form>
+</div>
+
+<!-- Test Siren -->
+<div class="poster-block">
+  <h3>◆ TEST SIREN</h3>
+  <p style="font-size:var(--text-sm);margin-bottom:var(--space-md);">SOUNDS THE SIREN FOR 1 SECOND USING THE CURRENTLY SAVED MQTT SETTINGS.</p>
+  <form method="POST" action="/settings/test-siren">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <button type="submit" class="btn btn-secondary">TEST SIREN (1 S)</button>
+  </form>
+  <form method="POST" action="/siren/stop" style="margin-top:var(--space-sm);">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <button type="submit" class="btn btn-secondary">◆ STOP SIREN</button>
+  </form>
+</div>
+
+<!-- Siren Mute -->
+<div class="poster-block">
+  <h3>◆ SIREN MUTE</h3>
+  <p style="font-size:var(--text-sm);margin-bottom:var(--space-sm);">
+    {% if siren_muted_since %}
+      STATUS: <span class="status-badge badge-siren-muted">MUTED</span>
+      &nbsp;SINCE <span data-ts="{{ siren_muted_since }}">{{ siren_muted_since }}</span>
+    {% else %}
+      STATUS: NOT MUTED
+    {% endif %}
+  </p>
+  <p style="font-size:var(--text-sm);margin-bottom:var(--space-md);">MUTING SILENCES THE SIREN NOW AND SUPPRESSES ALL FUTURE SIREN SOUNDS UNTIL THE WATER DROPS BELOW THE LEVEL IT WAS AT WHEN YOU MUTED (CRITICAL → WARNING OR NORMAL; WARNING → NORMAL). TELEGRAM ALERTS KEEP WORKING.</p>
+  {% if siren_muted_since %}
+  <form method="POST" action="/siren/unmute">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <button type="submit" class="btn btn-secondary">◆ UNMUTE SIREN</button>
+  </form>
+  {% else %}
+  <form method="POST" action="/siren/mute">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <button type="submit" class="btn btn-secondary">◆ MUTE UNTIL WATER DROPS</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll('.info-btn').forEach(function (btn) {
+    var hint = document.getElementById(btn.getAttribute('aria-controls'));
+    if (!hint) return;
+    btn.addEventListener('click', function () {
+      hint.hidden = !hint.hidden;
+      btn.setAttribute('aria-expanded', String(!hint.hidden));
+    });
+  });
+</script>
+{% endblock %}
