@@ -1,446 +1,363 @@
-{% extends "base.html" %}
-{% block title %}OVERVIEW — NAMMALAEW / น้ำมาแล้ว!{% endblock %}
+<!DOCTYPE html>
+<html lang="th-TH">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{% if summary and summary.level_index is not none %}{{ "%.0f"|format(summary.level_index) }} — {% endif %}น้ำมาแล้ว! / NamMaLaew</title>
+<style>
+  :root{
+    --ink:#0B1F26;
+    --panel:#12303A;
+    --panel-2:#173944;
+    --text:#EAF3F1;
+    --muted:#89A9A5;
+    --line:rgba(234,243,241,0.10);
+    --normal:#4FB286;
+    --warning:#E3A83B;
+    --critical:#E2603A;
+    --unknown:#6C8A92;
+    --radius:6px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Thai UI", "Noto Sans Thai", "Leelawadee UI", sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink);
+    color:var(--text);
+    font-family:var(--font);
+    line-height:1.5;
+    font-variant-numeric:tabular-nums;
+  }
+  a{color:inherit;}
+  button{font-family:inherit;}
 
-{% block content %}
+  /* ---------- top bar ---------- */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    flex-wrap:wrap;gap:8px;
+    padding:14px 20px;
+    border-bottom:1px solid var(--line);
+  }
+  .brand{font-weight:600;font-size:15px;letter-spacing:0.2px;text-decoration:none;}
+  .brand small{display:block;font-weight:400;color:var(--muted);font-size:12px;}
+  .toplinks{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;}
+  .toplinks a{text-decoration:none;color:var(--muted);}
+  .toplinks a.active,.toplinks a:hover{color:var(--text);}
+
+  .page{max-width:980px;margin:0 auto;padding:24px 20px 60px;}
+
+  /* ---------- hero ---------- */
+  .hero{
+    display:flex;justify-content:space-between;align-items:flex-start;
+    gap:24px;flex-wrap:wrap;
+    padding:22px 24px;
+    background:var(--panel);
+    border-left:4px solid var(--status-color, var(--unknown));
+    border-radius:var(--radius);
+  }
+  .hero-main .eyebrow{color:var(--muted);font-size:13px;margin:0 0 6px;}
+  .hero-number{font-size:64px;font-weight:700;line-height:1;margin:0;}
+  .hero-status{font-size:18px;font-weight:600;margin:6px 0 4px;}
+  .hero-meta{color:var(--muted);font-size:13px;}
+  .hero-reason{margin-top:10px;font-size:14px;max-width:46ch;color:var(--text);}
+  .hero-actions{display:flex;flex-direction:column;gap:8px;min-width:180px;}
+
+  .btn{
+    border:1px solid var(--line);
+    background:var(--panel-2);
+    color:var(--text);
+    padding:9px 14px;
+    border-radius:var(--radius);
+    font-size:13px;
+    cursor:pointer;
+    text-align:center;
+  }
+  .btn:hover{border-color:var(--muted);}
+  .btn:disabled{opacity:0.6;cursor:default;}
+  .btn-primary{background:var(--normal);border-color:var(--normal);color:#06231A;font-weight:600;}
+  .btn-warn{background:transparent;border-color:var(--warning);color:var(--warning);}
+  .badge{display:inline-block;font-size:12px;padding:2px 8px;border-radius:999px;background:var(--panel-2);color:var(--muted);}
+
+  /* ---------- stats row ---------- */
+  .stats-row{
+    display:grid;grid-template-columns:repeat(3,1fr);
+    margin-top:18px;border-top:1px solid var(--line);
+  }
+  .stat{padding:16px 20px;border-right:1px solid var(--line);}
+  .stat:last-child{border-right:none;}
+  .stat h3{margin:0 0 8px;font-size:13px;font-weight:500;color:var(--muted);}
+  .stat .row{display:flex;justify-content:space-between;font-size:14px;margin:3px 0;}
+  .stat .row span:last-child{font-weight:600;}
+  .muted-line{color:var(--muted);font-size:13px;}
+  @media (max-width:720px){
+    .stats-row{grid-template-columns:1fr;}
+    .stat{border-right:none;border-bottom:1px solid var(--line);}
+  }
+
+  /* ---------- section heading ---------- */
+  .section{margin-top:32px;}
+  .section-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;}
+  .section-head h2{font-size:16px;font-weight:600;margin:0;}
+  .seg{display:flex;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;}
+  .seg button{background:transparent;border:none;color:var(--muted);padding:6px 12px;font-size:12px;border-right:1px solid var(--line);}
+  .seg button:last-child{border-right:none;}
+  .seg button.active{background:var(--panel-2);color:var(--text);}
+
+  .chart-box{background:var(--panel);border-radius:var(--radius);padding:16px;height:280px;}
+
+  /* ---------- lenses ---------- */
+  .lenses{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;}
+  .lens-card{background:var(--panel);border-radius:var(--radius);overflow:hidden;}
+  .lens-photo{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:var(--panel-2);}
+  .lens-body{padding:12px 14px;}
+  .lens-body h4{margin:0 0 6px;font-size:14px;font-weight:600;}
+  .lens-body p{margin:6px 0 0;font-size:13px;color:var(--text);}
+  .lens-foot{margin-top:8px;font-size:12px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;}
+
+  .empty{padding:40px 20px;text-align:center;color:var(--muted);background:var(--panel);border-radius:var(--radius);}
+  .composite-link{display:inline-block;margin-top:6px;font-size:13px;color:var(--muted);text-decoration:underline;}
+</style>
+</head>
+<body>
+
 {% set s = summary %}
 {% set status = s.status if s else 'unknown' %}
+{% set status_color = {'normal': 'var(--normal)', 'warning': 'var(--warning)', 'critical': 'var(--critical)', 'unknown': 'var(--unknown)'}[status] %}
+{% set status_th = {'normal': 'ปกติ', 'warning': 'เตือนภัย', 'critical': 'วิกฤต', 'unknown': 'ไม่ทราบ'}[status] %}
 
-<!-- Hero poster block: Stat-Led -->
-<div class="hero-poster status-{{ status }}">
-  <div class="hero-layout">
-    <div class="hero-layout-stat">
-      <p class="hero-stat" aria-label="Water level index: {{ '%.1f'|format(s.level_index) if s and s.level_index is not none else 'unknown' }}">
-        {{ "%.1f"|format(s.level_index) if s and s.level_index is not none else "—" }}
-      </p>
-    </div>
-    <div class="hero-layout-meta">
-      <p class="hero-status-word">
-        {% if status == 'normal' %}NORMAL / ปกติ
-        {% elif status == 'warning' %}WARNING / เตือนภัย
-        {% elif status == 'critical' %}CRITICAL / วิกฤต
-        {% else %}UNKNOWN / ไม่ทราบ
-        {% endif %}
+<header class="topbar">
+  <a href="/" class="brand">น้ำมาแล้ว!<small>NamMaLaew</small></a>
+  <nav class="toplinks">
+    <a href="/" class="active">ภาพรวม</a>
+    <a href="/timeline">ไทม์ไลน์</a>
+    <a href="/alerts">การแจ้งเตือน</a>
+    <a href="/settings">ตั้งค่า</a>
+    <a href="/lines">เส้นระดับน้ำ</a>
+    <a href="/logout">ออกจากระบบ</a>
+  </nav>
+</header>
+
+<main class="page">
+
+  <section class="hero" style="--status-color:{{ status_color }}">
+    <div class="hero-main">
+      <p class="eyebrow">ระดับน้ำล่าสุด</p>
+      <p class="hero-number">{{ "%.0f"|format(s.level_index) if s and s.level_index is not none else "—" }}</p>
+      <p class="hero-status" style="color:{{ status_color }}">
+        {{ status_th }} <span style="color:var(--muted);font-weight:400;">/ {{ status|upper }}</span>
       </p>
       <div class="hero-meta">
-        {% if s and s.confidence %}
-          <span>{{ "%.0f"|format(s.confidence * 100) }}% CONFIDENCE</span> &nbsp;
-        {% endif %}
-        {% if s and s.ts %}
-          <span data-ts="{{ s.ts }}">{{ s.ts }}</span>
-        {% endif %}
-        {% if stale %}
-          &nbsp;<span class="status-badge badge-stale">⚠ STALE</span>
-        {% endif %}
+        {% if s and s.confidence %}ความมั่นใจ {{ "%.0f"|format(s.confidence * 100) }}% · {% endif %}
+        {% if s and s.ts %}<span data-ts="{{ s.ts }}">{{ s.ts }}</span>{% endif %}
+        {% if stale %} · <span style="color:var(--warning)">ข้อมูลอาจไม่ล่าสุด</span>{% endif %}
       </div>
-      {% if s and s.reason %}
-        <div style="margin-top:var(--space-xs);font-size:var(--text-sm);">{{ s.reason }}</div>
+      {% if s and s.reason %}<p class="hero-reason">{{ s.reason }}</p>{% endif %}
+    </div>
+
+    <div class="hero-actions">
+      <form method="POST" action="/run-now" id="run-now-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <button type="submit" class="btn btn-primary" style="width:100%;">ตรวจตอนนี้</button>
+      </form>
+      {% if siren_host %}
+      <form method="POST" action="/siren/stop" id="siren-stop-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <button type="submit" class="btn" style="width:100%;">หยุดไซเรน</button>
+      </form>
+      {% if siren_muted %}
+        <span class="badge">ปิดเสียงไซเรนชั่วคราวอยู่</span>
+        <form method="POST" action="/siren/unmute" id="siren-unmute-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <button type="submit" class="btn" style="width:100%;">เปิดไซเรนกลับ</button>
+        </form>
+      {% else %}
+        <form method="POST" action="/siren/mute" id="siren-mute-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <button type="submit" class="btn btn-warn" style="width:100%;">ปิดจนกว่าน้ำจะลด</button>
+        </form>
+      {% endif %}
       {% endif %}
     </div>
-  </div>
-</div>
+  </section>
 
-<!-- Ornament divider -->
-<p class="ornament-divider" aria-hidden="true">✱ ✱ ✱ ✱</p>
-
-<!-- Run Now form (header area) -->
-<div style="margin-bottom:var(--space-md);display:flex;align-items:center;gap:var(--space-sm);flex-wrap:wrap;">
-  <form method="POST" action="/run-now" id="run-now-form" style="display:inline;">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-    <button type="submit" class="btn btn-primary">▶ RUN NOW</button>
-  </form>
-  {% if siren_host %}
-  <form method="POST" action="/siren/stop" id="siren-stop-form" style="display:inline;">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-    <button type="submit" class="btn btn-secondary">◆ STOP SIREN</button>
-  </form>
-  {% if siren_muted %}
-  <span class="status-badge badge-siren-muted">SIREN MUTED</span>
-  <form method="POST" action="/siren/unmute" id="siren-unmute-form" style="display:inline;">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-    <button type="submit" class="btn btn-secondary">◆ UNMUTE SIREN</button>
-  </form>
-  {% else %}
-  <form method="POST" action="/siren/mute" id="siren-mute-form" style="display:inline;">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-    <button type="submit" class="btn btn-secondary">◆ MUTE UNTIL WATER DROPS</button>
-  </form>
-  {% endif %}
-  {% endif %}
-</div>
-
-<!-- Bento grid of tiles -->
-<div class="bento-grid">
-
-  <!-- Rise rate + ETA tile -->
-  <div class="bento-tile bento-tile-paper2">
-    <h3>◆ RISE RATE / ETA</h3>
-    {% if slope is not none %}
-      <div class="metric-row">
-        <span class="metric-label">RATE:</span>
-        <span class="metric-value {% if slope > 0 %}text-warning{% elif slope < 0 %}text-normal{% endif %}">
-          {{ "%.2f"|format(slope) }} / hr
-        </span>
-      </div>
-      {% if slope_r2 is not none %}
-        <div class="metric-row">
-          <span class="metric-label">R²:</span>
-          <span class="metric-value" style="font-size:var(--text-sm);color:var(--color-muted)">{{ "%.2f"|format(slope_r2) }}</span>
-        </div>
-      {% endif %}
-      {% if eta %}
-        <div class="metric-row">
-          <span class="metric-label">ETA CRITICAL:</span>
-          <span class="metric-value text-critical">{{ eta.label }}</span>
-        </div>
-        {% if eta.eta_dt %}
-          <div class="metric-row">
-            <span class="metric-label">AT:</span>
-            <span class="metric-value" data-ts="{{ eta.eta_dt.isoformat() if eta.eta_dt else '' }}">—</span>
-          </div>
+  <div class="stats-row">
+    <div class="stat">
+      <h3>อัตราการขึ้นของน้ำ</h3>
+      {% if slope is not none %}
+        <div class="row"><span>อัตรา</span><span>{{ "%.2f"|format(slope) }} /ชม.</span></div>
+        {% if eta %}
+          <div class="row"><span>ถึงจุดวิกฤตใน</span><span style="color:var(--critical)">{{ eta.label }}</span></div>
+        {% else %}
+          <div class="row"><span>คาดว่าถึงวิกฤต</span><span class="muted-line">น้ำไม่ได้ขึ้น</span></div>
         {% endif %}
       {% else %}
-        <div class="metric-row">
-          <span class="metric-label">ETA:</span>
-          <span class="metric-value text-muted">NOT RISING</span>
-        </div>
+        <p class="muted-line">ข้อมูลยังไม่พอ (ต้องการอย่างน้อย 3 ค่า)</p>
       {% endif %}
-    {% elif rise_rate_pts is defined and rise_rate_pts >= 3 %}
-      <p class="text-muted" style="font-size:var(--text-sm);">NOT RISING / น้ำไม่ขึ้น</p>
-    {% else %}
-      <p class="text-muted" style="font-size:var(--text-sm);">NOT ENOUGH DATA (NEED ≥3 READINGS).</p>
-    {% endif %}
-  </div>
+    </div>
 
-  <!-- System health tile -->
-  <div class="bento-tile bento-tile-paper2">
-    <h3>◆ SYSTEM HEALTH (24H)</h3>
-    {% if health %}
-      <div class="metric-row"><span class="metric-label">READINGS:</span><span class="metric-value">{{ health.total_readings_24h }}</span></div>
-      <div class="metric-row">
-        <span class="metric-label">ANALYSIS:</span>
-        <span class="metric-value {% if health.analysis_success_rate >= 0.9 %}text-normal{% elif health.analysis_success_rate >= 0.7 %}text-warning{% else %}text-critical{% endif %}">
-          {{ "%.0f"|format(health.analysis_success_rate * 100) }}%
-        </span>
-      </div>
-      {% for label, rate in health.capture_rates.items() %}
-        <div class="metric-row">
-          <span class="metric-label">{{ label }}:</span>
-          <span class="metric-value">{{ "%.0f"|format(rate * 100) }}%</span>
-        </div>
-      {% endfor %}
-      {% if health.avg_confidence %}<div class="metric-row"><span class="metric-label">AVG CONF:</span><span class="metric-value">{{ "%.0f"|format(health.avg_confidence * 100) }}%</span></div>{% endif %}
-    {% else %}
-      <p class="text-muted" style="font-size:var(--text-sm);">NO HEALTH DATA YET.</p>
-    {% endif %}
-  </div>
-
-  <!-- Cost tile -->
-  <div class="bento-tile bento-tile-paper3">
-    <h3>◆ COST / ค่าใช้จ่าย</h3>
-    {% if costs and costs.daily %}
-      <div class="metric-row"><span class="metric-label">AVG DAILY:</span><span class="metric-value">${{ "%.4f"|format(costs.avg_daily_cost) }}</span></div>
-      <div class="metric-row"><span class="metric-label">PROJ. 30D:</span><span class="metric-value">${{ "%.2f"|format(costs.projected_30d) }}</span></div>
-      <div class="cost-table">
-        {% for day in costs.daily[-7:] %}
-          <div class="cost-row">
-            <span class="cost-day">{{ day.day }}</span>
-            <span class="cost-val">${{ "%.4f"|format(day.cost) }}</span>
-          </div>
+    <div class="stat">
+      <h3>สถานะระบบ (24 ชม.)</h3>
+      {% if health %}
+        <div class="row"><span>จำนวนครั้งที่ตรวจ</span><span>{{ health.total_readings_24h }}</span></div>
+        <div class="row"><span>วิเคราะห์สำเร็จ</span><span>{{ "%.0f"|format(health.analysis_success_rate * 100) }}%</span></div>
+        {% for label, rate in health.capture_rates.items() %}
+          <div class="row"><span>กล้อง {{ label }}</span><span>{{ "%.0f"|format(rate * 100) }}%</span></div>
         {% endfor %}
-      </div>
-    {% else %}
-      <p class="text-muted" style="font-size:var(--text-sm);">NO COST DATA YET.</p>
-    {% endif %}
-  </div>
-
-  <!-- Level chart tile (wide) -->
-  <div class="bento-tile bento-tile-paper3 bento-tile-wide">
-    <div class="card-header-row">
-      <h3>◆ WATER LEVEL / ระดับน้ำ</h3>
-      <div class="range-btns">
-        <button class="range-btn" data-range="6h">6H</button>
-        <button class="range-btn active" data-range="24h">24H</button>
-        <button class="range-btn" data-range="3d">3D</button>
-        <button class="range-btn" data-range="7d">7D</button>
-      </div>
-    </div>
-    <div class="chart-container">
-      <canvas id="levelChart"></canvas>
-    </div>
-  </div>
-
-  <!-- Rain Around tile (wide) -->
-  {% if site_lat is defined and site_lat is not none and site_lon is defined and site_lon is not none %}
-  <div class="bento-tile bento-tile-paper3 bento-tile-wide" id="rain-around-tile"
-       data-lat="{{ site_lat }}" data-lon="{{ site_lon }}">
-    <div class="card-header-row">
-      <h3>◆ RAIN AROUND / ฝนรอบพื้นที่</h3>
-      <div class="rain-controls">
-        <div class="rain-radius-row">
-          <button class="rain-radius-btn" data-radius="10">10 KM</button>
-          <button class="rain-radius-btn active" data-radius="25">25 KM</button>
-          <button class="rain-radius-btn" data-radius="50">50 KM</button>
-        </div>
-        <div class="rain-time-row">
-          <button class="rain-time-btn active" data-mode="radar">เรดาร์ · Radar</button>
-          <button class="rain-time-btn" data-mode="1">+1 ชม.</button>
-          <button class="rain-time-btn" data-mode="2">+2 ชม.</button>
-          <button class="rain-time-btn" data-mode="3">+3 ชม.</button>
-        </div>
-      </div>
-    </div>
-    <div id="rain-map" class="rain-map-container"></div>
-    <div class="rain-map-footer">
-      <span id="rain-radar-status"></span>
-      <span id="rain-frame-time" class="rain-frame-time"></span>
-    </div>
-    <div id="rain-forecast-legend" class="rain-forecast-legend" hidden>
-      <span class="rain-legend-label">ฝนต่อชั่วโมง · Rain per hour:</span>
-      <span class="rain-legend-swatch" style="--swatch-c:var(--color-rain-1)">&lt; 1 mm</span>
-      <span class="rain-legend-swatch" style="--swatch-c:var(--color-rain-2)">1–2.5</span>
-      <span class="rain-legend-swatch" style="--swatch-c:var(--color-rain-3)">2.5–7.6</span>
-      <span class="rain-legend-swatch" style="--swatch-c:var(--color-rain-4)">≥ 7.6 mm</span>
-    </div>
-  </div>
-  {% else %}
-  <div class="bento-tile bento-tile-paper3 bento-tile-wide">
-    <h3>◆ RAIN AROUND / ฝนรอบพื้นที่</h3>
-    <p class="text-muted" style="font-size:var(--text-sm);">
-      กรุณากำหนดละติจูด/ลองจิจูดใน <a href="/settings">การตั้งค่า</a> เพื่อดูฝนรอบพื้นที่ ·
-      Set latitude/longitude in <a href="/settings">Settings</a> to see rain around the site.
-    </p>
-  </div>
-  {% endif %}
-
-  <!-- Image quality chart tile (wide) -->
-  <div class="bento-tile bento-tile-paper2 bento-tile-wide">
-    <div class="card-header-row">
-      <h3>◆ IMAGE QUALITY / คุณภาพภาพ</h3>
-      <div class="range-btns" id="img-range-btns">
-        <button class="img-range-btn" data-range="6h">6H</button>
-        <button class="img-range-btn active" data-range="24h">24H</button>
-        <button class="img-range-btn" data-range="3d">3D</button>
-        <button class="img-range-btn" data-range="7d">7D</button>
-      </div>
-    </div>
-    <div class="chart-container">
-      <canvas id="imgQualityChart"></canvas>
-    </div>
-    <div id="img-quality-latest" style="margin-top:var(--space-sm);font-size:var(--text-sm);color:var(--color-muted);font-variant-numeric:tabular-nums;"></div>
-  </div>
-
-  <!-- Per-lens tiles -->
-  {% if s and s.lenses %}
-    {% for lr in s.lenses %}
-    <div class="bento-tile bento-tile-paper3">
-      <h3>◆ {{ lr.label | upper }}</h3>
-      {% if lr.snapshot_path %}
-        <a href="/snapshots/{{ lr.snapshot_path }}" target="_blank" class="thumb-link">
-          <img src="/snapshots/{{ lr.snapshot_path }}" class="thumb" alt="{{ lr.label }}"
-               onerror="this.parentElement.innerHTML='<div class=\'catalogue-card-thumb-placeholder halftone\' style=\'width:100%;height:80px;\'></div>'" />
-        </a>
       {% else %}
-        <div class="catalogue-card-thumb-placeholder halftone" style="width:100%;height:80px;" aria-hidden="true"></div>
-      {% endif %}
-      {% if lr.line_position %}
-        <div style="margin-top:var(--space-2xs);">
-          {% if lr.line_position == 'below_warning' %}
-            <span class="badge-line-pos badge-lp-below">BELOW WARNING</span>
-          {% elif lr.line_position == 'at_or_above_warning' %}
-            <span class="badge-line-pos badge-lp-warning">AT/ABOVE WARNING</span>
-          {% elif lr.line_position == 'at_or_above_critical' %}
-            <span class="badge-line-pos badge-lp-critical">AT/ABOVE CRITICAL</span>
-          {% elif lr.line_position == 'no_lines' %}
-            <span class="badge-line-pos badge-lp-none">LINES NOT SET</span>
-          {% elif lr.line_position == 'not_visible' %}
-            <span class="badge-line-pos badge-lp-none">CAN'T JUDGE</span>
-          {% endif %}
-        </div>
-      {% endif %}
-      {% if lr.observation %}
-        <div class="lens-obs">{{ lr.observation }}</div>
-      {% endif %}
-      {% if lr.water_coverage_pct is not none %}
-        <div class="lens-stat">COVERAGE: {{ "%.0f"|format(lr.water_coverage_pct) }}%</div>
-      {% endif %}
-      {% if lr.is_night %}
-        <span class="badge-night">🌙 NIGHT</span>
+        <p class="muted-line">ยังไม่มีข้อมูล</p>
       {% endif %}
     </div>
-    {% endfor %}
-  {% endif %}
 
-  <!-- Composite thumbnail tile -->
-  {% if s and s.composite_path %}
-  <div class="bento-tile bento-tile-paper2">
-    <h3>◆ COMPOSITE IMAGE</h3>
-    <a href="/snapshots/{{ s.composite_path }}" target="_blank" class="thumb-link">
-      <img src="/snapshots/{{ s.composite_path }}" style="max-width:100%;height:auto;border:var(--border-card);"
-           alt="Latest composite"
-           onerror="this.parentElement.innerHTML='<div class=\'halftone\' style=\'width:100%;height:120px;border:var(--border-card);\'></div>'" />
-    </a>
+    <div class="stat">
+      <h3>ค่าใช้จ่าย</h3>
+      {% if costs and costs.daily %}
+        <div class="row"><span>เฉลี่ยต่อวัน</span><span>${{ "%.4f"|format(costs.avg_daily_cost) }}</span></div>
+        <div class="row"><span>คาดการณ์ 30 วัน</span><span>${{ "%.2f"|format(costs.projected_30d) }}</span></div>
+      {% else %}
+        <p class="muted-line">ยังไม่มีข้อมูล</p>
+      {% endif %}
+    </div>
   </div>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>ระดับน้ำย้อนหลัง</h2>
+      <div class="seg" id="range-buttons">
+        <button data-range="6h">6 ชม.</button>
+        <button data-range="24h" class="active">24 ชม.</button>
+        <button data-range="3d">3 วัน</button>
+        <button data-range="7d">7 วัน</button>
+      </div>
+    </div>
+    <div class="chart-box"><canvas id="levelChart"></canvas></div>
+  </section>
+
+  {% if s and s.lenses %}
+  <section class="section">
+    <div class="section-head"><h2>ภาพจากกล้อง</h2></div>
+    <div class="lenses">
+      {% for lr in s.lenses %}
+      <div class="lens-card">
+        {% if lr.snapshot_path %}
+          <a href="/snapshots/{{ lr.snapshot_path }}" target="_blank">
+            <img class="lens-photo" src="/snapshots/{{ lr.snapshot_path }}" alt="{{ lr.label }}"
+                 onerror="this.style.display='none'" />
+          </a>
+        {% else %}
+          <div class="lens-photo"></div>
+        {% endif %}
+        <div class="lens-body">
+          <h4>{{ lr.label }}</h4>
+          {% if lr.observation %}<p>{{ lr.observation }}</p>{% endif %}
+          <div class="lens-foot">
+            {% if lr.line_position == 'below_warning' %}<span>ต่ำกว่าเส้นเตือน</span>
+            {% elif lr.line_position == 'at_or_above_warning' %}<span style="color:var(--warning)">ถึง/เกินเส้นเตือน</span>
+            {% elif lr.line_position == 'at_or_above_critical' %}<span style="color:var(--critical)">ถึง/เกินเส้นวิกฤต</span>
+            {% elif lr.line_position == 'no_lines' %}<span>ยังไม่ได้วาดเส้น</span>
+            {% elif lr.line_position == 'not_visible' %}<span>มองไม่เห็นระดับน้ำ</span>
+            {% endif %}
+            {% if lr.water_coverage_pct is not none %}<span>· คลุมพื้นที่ {{ "%.0f"|format(lr.water_coverage_pct) }}%</span>{% endif %}
+            {% if lr.is_night %}<span>· 🌙 กลางคืน</span>{% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% if s.composite_path %}
+      <a class="composite-link" href="/snapshots/{{ s.composite_path }}" target="_blank">ดูภาพรวมทุกกล้องล่าสุด →</a>
+    {% endif %}
+  </section>
   {% endif %}
 
+  {% if not s %}
+    <div class="empty" style="margin-top:24px;">ยังไม่มีข้อมูลการตรวจวัด</div>
+  {% endif %}
 
-</div><!-- /bento-grid -->
+</main>
 
-{% if not s %}
-<div class="card" style="text-align:center;padding:var(--space-2xl);">
-  <p class="text-muted">NO READINGS YET.</p>
-</div>
-{% endif %}
-
-{% endblock %}
-
-{% block scripts %}
-<script>
-  // Vendor: Chart.js 4.4.4 + chartjs-adapter-date-fns 3.0.0
-</script>
 <script src="/static/vendor/chart.umd.min.js"></script>
 <script src="/static/vendor/chartjs-adapter-date-fns.bundle.min.js"></script>
-<script src="/static/js/dashboard.js"></script>
-{% if site_lat is defined and site_lat is not none and site_lon is defined and site_lon is not none %}
-<link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css" />
-<script src="/static/vendor/leaflet/leaflet.js"></script>
-<script src="/static/js/rain_radar.js"></script>
-{% endif %}
+<script src="/static/js/timestamps.js" defer></script>
 <script>
-(function() {
-  // Image quality chart — reads colours from CSS custom properties
-  let imgChart = null;
-  let currentImgRange = '24h';
+(function () {
+  var STATUS_COLOR = {normal:'#4FB286', warning:'#E3A83B', critical:'#E2603A', unknown:'#6C8A92'};
+  var chart = null;
 
-  function getCSSVar(name) {
-    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  }
-
-  function getLensColors() {
-    // Use chart tokens — not accent/accent-2 (status-ambiguous in Cold Snap)
-    return [
-      getCSSVar('--color-chart-lens-a'),
-      getCSSVar('--color-chart-lens-b'),
-      getCSSVar('--color-ink-2'),
-      getCSSVar('--color-muted'),
-      getCSSVar('--color-ink'),
-    ];
-  }
-
-  async function loadImgSeries(range) {
-    const resp = await fetch('/api/image-series?range=' + range);
-    if (!resp.ok) return;
-    const data = await resp.json();
-
-    const lenses = data.lenses || [];
-    const series = data.series || {};
-    const latest = data.latest || {};
-
-    const LENS_COLORS = getLensColors();
-    const inkColor = getCSSVar('--color-ink');
-    const mutedColor = getCSSVar('--color-muted');
-    const bodyFont = getCSSVar('--font-body').split(',')[0].trim().replace(/["']/g, '');
-
-    const datasets = [];
-    lenses.forEach((label, i) => {
-      const color = LENS_COLORS[i % LENS_COLORS.length];
-      const pts = (series[label] || []);
-
-      datasets.push({
-        label: label + ' brightness',
-        data: pts.map(p => ({ x: p.ts, y: p.brightness })),
-        borderColor: color,
-        backgroundColor: color + '55',
-        yAxisID: 'yBright',
-        tension: 0.2,
-        pointRadius: pts.length > 200 ? 0 : 2,
-        borderWidth: 1.5,
-        spanGaps: true,
-      });
-
-      datasets.push({
-        label: label + ' sharpness',
-        data: pts.map(p => ({ x: p.ts, y: p.sharpness })),
-        borderColor: color,
-        borderDash: [5, 3],
-        backgroundColor: 'transparent',
-        yAxisID: 'ySharp',
-        tension: 0.2,
-        pointRadius: 0,
-        borderWidth: 1,
-        spanGaps: true,
-      });
-    });
-
-    const ctx = document.getElementById('imgQualityChart');
-    if (!ctx) return;
-
-    if (imgChart) imgChart.destroy();
-    imgChart = new Chart(ctx, {
-      type: 'line',
-      data: { datasets },
+  function drawChart(data, warn, crit) {
+    var ctx = document.getElementById('levelChart');
+    if (!ctx || typeof Chart === 'undefined') return;
+    var readings = data.readings || [];
+    var levelData = readings.filter(function(r){return r.level_index !== null;})
+      .map(function(r){return {x:r.ts, y:r.level_index, status:r.status};});
+    var pointColors = levelData.map(function(p){return STATUS_COLOR[p.status] || STATUS_COLOR.unknown;});
+    var xs = levelData.map(function(p){return new Date(p.x).getTime();}).filter(function(t){return !isNaN(t);});
+    var datasets = [{
+      label: 'ระดับน้ำ', data: levelData, borderColor: '#EAF3F1',
+      backgroundColor: pointColors, pointBackgroundColor: pointColors, pointBorderColor: pointColors,
+      pointRadius: 3, borderWidth: 2, tension: 0.2, spanGaps: false,
+    }];
+    if (xs.length > 0) {
+      var x0 = new Date(Math.min.apply(null, xs)).toISOString();
+      var x1 = new Date(Math.max.apply(null, xs)).toISOString();
+      datasets.push({label:'เตือน', data:[{x:x0,y:warn},{x:x1,y:warn}], borderColor:STATUS_COLOR.warning, borderDash:[6,3], borderWidth:1.5, pointRadius:0});
+      datasets.push({label:'วิกฤต', data:[{x:x0,y:crit},{x:x1,y:crit}], borderColor:STATUS_COLOR.critical, borderDash:[6,3], borderWidth:1.5, pointRadius:0});
+    }
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, {
+      type: 'line', data: {datasets: datasets},
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: { display: true, labels: { color: mutedColor, boxWidth: 10, font: { family: bodyFont } } },
-          tooltip: { callbacks: {
-            label: (item) => item.dataset.label + ': ' + (item.parsed.y != null ? item.parsed.y.toFixed(1) : '—'),
-          }},
-        },
-        scales: {
-          x: {
-            type: 'time',
-            time: { tooltipFormat: 'MMM d HH:mm', displayFormats: { hour: 'HH:mm', day: 'MMM d' } },
-            ticks: { color: mutedColor, maxTicksLimit: 8, font: { family: bodyFont } },
-            grid: { color: getCSSVar('--color-chart-grid') },
-          },
-          yBright: {
-            type: 'linear', position: 'left',
-            title: { display: true, text: 'Brightness (0-255)', color: mutedColor, font: { size: 11, family: bodyFont } },
-            min: 0, max: 255,
-            ticks: { color: mutedColor, font: { family: bodyFont } },
-            grid: { color: getCSSVar('--color-chart-grid') },
-          },
-          ySharp: {
-            type: 'linear', position: 'right',
-            title: { display: true, text: 'Sharpness', color: mutedColor, font: { size: 11, family: bodyFont } },
-            min: 0,
-            ticks: { color: mutedColor, font: { family: bodyFont } },
-            grid: { display: false },
-          },
+        responsive:true, maintainAspectRatio:false,
+        interaction:{mode:'index', intersect:false},
+        plugins:{legend:{display:true, labels:{color:'#89A9A5'}}},
+        scales:{
+          x:{type:'time', time:{tooltipFormat:'PP HH:mm'}, grid:{color:'rgba(234,243,241,0.08)'}, ticks:{color:'#89A9A5', maxTicksLimit:7}},
+          y:{min:0, max:100, grid:{color:'rgba(234,243,241,0.08)'}, ticks:{color:'#89A9A5'}},
         },
       },
     });
-
-    const latestDiv = document.getElementById('img-quality-latest');
-    if (latestDiv) {
-      const parts = lenses.map(label => {
-        const l = latest[label];
-        if (!l) return `<span>${label}: —</span>`;
-        const night = l.is_night ? ' 🌙' : '';
-        return `<span style="margin-right:var(--space-md)"><strong>${label}</strong>: brightness=${l.brightness != null ? l.brightness.toFixed(0) : '—'}, sharpness=${l.sharpness != null ? l.sharpness.toFixed(0) : '—'}${night}</span>`;
-      });
-      latestDiv.innerHTML = 'LATEST: ' + parts.join(' ');
-    }
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    loadImgSeries(currentImgRange);
-    document.querySelectorAll('.img-range-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.img-range-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentImgRange = btn.dataset.range;
-        loadImgSeries(currentImgRange);
+  function loadChart(range) {
+    fetch('/api/summary').then(function(r){return r.json();}).then(function(sum){
+      var warn = sum.level_warning || 50, crit = sum.level_critical || 90;
+      return fetch('/api/series?range=' + range).then(function(r){return r.json();}).then(function(data){
+        drawChart(data, warn, crit);
       });
-    });
+    }).catch(function(e){ console.error('chart load failed', e); });
+  }
 
-    // Rebuild on colour scheme change
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-      loadImgSeries(currentImgRange);
+  document.querySelectorAll('#range-buttons button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('#range-buttons button').forEach(function(b){b.classList.remove('active');});
+      btn.classList.add('active');
+      loadChart(btn.dataset.range);
     });
   });
+  loadChart('24h');
+
+  function wireForm(id, resultText) {
+    var form = document.getElementById(id);
+    if (!form) return;
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      var btn = form.querySelector('button');
+      var original = btn.textContent;
+      btn.disabled = true; btn.textContent = 'กำลังทำ…';
+      fetch(form.action, {method:'POST', body:new FormData(form), headers:{Accept:'application/json'}})
+        .then(function(r){return r.json().catch(function(){return {};});})
+        .then(function(){
+          btn.textContent = resultText;
+          setTimeout(function(){ location.reload(); }, 1200);
+        })
+        .catch(function(){ btn.disabled=false; btn.textContent = original; });
+    });
+  }
+  wireForm('run-now-form', '✓ ส่งคำขอแล้ว');
+  wireForm('siren-stop-form', '✓ หยุดแล้ว');
+  wireForm('siren-mute-form', '✓ ปิดเสียงแล้ว');
+  wireForm('siren-unmute-form', '✓ เปิดแล้ว');
 })();
 </script>
-{% endblock %}
+
+</body>
+</html>
